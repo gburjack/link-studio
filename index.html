@@ -573,8 +573,8 @@ async function shortenURL(urlOverride) {
   btn.disabled = true;
 
   try {
-    // Use is.gd — CORS-friendly shortener
-    const res = await fetch(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(url)}`);
+    const apiUrl = `https://is.gd/create.php?format=simple&url=${encodeURIComponent(url)}`;
+    const res = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(apiUrl)}`);
     if (!res.ok) throw new Error('Erro na API');
     const short = await res.text();
 
