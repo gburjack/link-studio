@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Link Studio</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#07080d;
+  --s1:#0f1018;
+  --s2:#171923;
+  --s3:#1e2130;
+  --border:#252840;
+  --border2:#30354f;
+  --em:#10b981;
+  --em2:#34d399;
+  --wa:#25D366;
+  --qr:#6366f1;
+  --sh:#f59e0b;
+  --text:#eef0ff;
+  --muted:#6b7080;
+  --muted2:#9ca3b8;
+  --r:14px;
+  --glow-em:rgba(16,185,129,.3);
+  --glow-wa:rgba(37,211,102,.3);
+  --glow-qr:rgba(99,102,241,.3);
+  --glow-sh:rgba(245,158,11,.25);
+}
+
+body{
+  font-family:'Outfit',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* ── BG MESH ── */
+.mesh{
+  position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 60% 40% at 10% 15%,rgba(16,185,129,.07) 0%,transparent 70%),
+    radial-gradient(ellipse 50% 40% at 90% 80%,rgba(99,102,241,.07) 0%,transparent 70%),
+    radial-gradient(ellipse 40% 30% at 50% 50%,rgba(245,158,11,.04) 0%,transparent 70%);
+}
+
+/* ── LAYOUT ── */
+.app{position:relative;z-index:1;display:flex;flex-direction:column;min-height:100vh;max-width:1100px;margin:0 auto;padding:32px 20px 60px}
+
+/* ── HEADER ── */
+.header{text-align:center;margin-bottom:36px}
+.badge{
+  display:inline-flex;align-items:center;gap:8px;
+  background:linear-gradient(135deg,var(--em),var(--qr));
+  color:#fff;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+  padding:5px 16px;border-radius:100px;margin-bottom:18px;
+}
+h1{
+  font-size:clamp(2rem,5vw,3.2rem);font-weight:800;line-height:1.1;margin-bottom:10px;
+  background:linear-gradient(135deg,#fff 0%,#a7f3d0 50%,#a5b4fc 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.subtitle{color:var(--muted2);font-size:1rem;font-weight:400}
+
+/* ── ACTIVE LINK BAR ── */
+.link-bar{
+  background:var(--s2);border:1px solid var(--border);border-radius:var(--r);
+  padding:14px 18px;display:flex;align-items:center;gap:12px;
+  margin-bottom:28px;transition:border-color .25s,box-shadow .25s;
+}
+.link-bar.has-link{border-color:var(--em);box-shadow:0 0 0 1px rgba(16,185,129,.2)}
+.link-bar-label{
+  font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--muted);white-space:nowrap;flex-shrink:0;
+}
+.link-bar.has-link .link-bar-label{color:var(--em)}
+.link-bar-url{
+  font-family:'JetBrains Mono',monospace;font-size:.82rem;
+  color:var(--muted2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.link-bar.has-link .link-bar-url{color:var(--em2)}
+.link-bar-copy{
+  background:transparent;border:1px solid var(--border2);color:var(--muted2);
+  font-size:.78rem;font-weight:600;padding:6px 12px;border-radius:8px;cursor:pointer;
+  font-family:'Outfit',sans-serif;transition:all .2s;flex-shrink:0;
+}
+.link-bar-copy:hover{border-color:var(--em);color:var(--em)}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:8px;margin-bottom:24px;background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:5px}
+.tab{
+  flex:1;padding:10px 8px;border:none;border-radius:9px;background:transparent;
+  font-family:'Outfit',sans-serif;font-size:.87rem;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  color:var(--muted);transition:all .2s;
+}
+.tab .dot{width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.5;flex-shrink:0}
+.tab.active-wa{background:rgba(37,211,102,.12);color:var(--wa);box-shadow:0 0 0 1px rgba(37,211,102,.2)}
+.tab.active-wa .dot{opacity:1}
+.tab.active-sh{background:rgba(245,158,11,.12);color:var(--sh);box-shadow:0 0 0 1px rgba(245,158,11,.2)}
+.tab.active-sh .dot{opacity:1}
+.tab.active-qr{background:rgba(99,102,241,.12);color:var(--qr);box-shadow:0 0 0 1px rgba(99,102,241,.2)}
+.tab.active-qr .dot{opacity:1}
+.tab:hover:not(.active-wa):not(.active-sh):not(.active-qr){background:var(--s2);color:var(--text)}
+@media(max-width:560px){.tab span{display:none}}
+
+/* ── PANELS ── */
+.panel{display:none;animation:fadeUp .3s ease}
+.panel.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── CARDS ── */
+.card{
+  background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:28px;
+  margin-bottom:16px;
+}
+.card-head{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+.card-icon{
+  width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  font-size:1.3rem;flex-shrink:0;
+}
+.icon-wa{background:rgba(37,211,102,.15)}
+.icon-sh{background:rgba(245,158,11,.15)}
+.icon-qr{background:rgba(99,102,241,.15)}
+.card-title{font-size:1.05rem;font-weight:700}
+.card-desc{font-size:.83rem;color:var(--muted2);margin-top:2px}
+
+/* ── FORM ELEMENTS ── */
+.field{margin-bottom:18px}
+.field:last-child{margin-bottom:0}
+label{display:block;font-size:.8rem;font-weight:600;color:var(--muted2);margin-bottom:7px;letter-spacing:.3px}
+input,textarea,select{
+  width:100%;background:var(--s3);border:1px solid var(--border);border-radius:10px;
+  padding:11px 15px;color:var(--text);font-family:'Outfit',sans-serif;font-size:.9rem;
+  outline:none;transition:border-color .2s,box-shadow .2s;
+}
+input::placeholder,textarea::placeholder{color:var(--muted)}
+textarea{resize:vertical;min-height:90px;line-height:1.5}
+input:focus,textarea:focus,select:focus{border-color:var(--em);box-shadow:0 0 0 3px var(--glow-em)}
+select option{background:var(--s3)}
+
+/* Phone row */
+.phone-row{display:flex;gap:8px}
+.ddi-select{width:130px;flex-shrink:0}
+
+/* ── BUTTONS ── */
+.btn{
+  width:100%;padding:13px 20px;border-radius:10px;border:none;font-family:'Outfit',sans-serif;
+  font-size:.92rem;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.3px;
+}
+.btn-wa{background:linear-gradient(135deg,var(--wa),#1da855);color:#fff;box-shadow:0 4px 18px var(--glow-wa)}
+.btn-wa:hover{transform:translateY(-2px);box-shadow:0 8px 28px var(--glow-wa)}
+.btn-sh{background:linear-gradient(135deg,var(--sh),#d97706);color:#fff;box-shadow:0 4px 18px var(--glow-sh)}
+.btn-sh:hover{transform:translateY(-2px);box-shadow:0 8px 28px var(--glow-sh)}
+.btn-qr{background:linear-gradient(135deg,var(--qr),#4f46e5);color:#fff;box-shadow:0 4px 18px var(--glow-qr)}
+.btn-qr:hover{transform:translateY(-2px);box-shadow:0 8px 28px var(--glow-qr)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important;box-shadow:none!important}
+
+/* ── RESULT BOX ── */
+.result-box{
+  background:var(--s3);border:1px solid var(--border2);border-radius:10px;
+  padding:14px 16px;display:flex;align-items:center;gap:10px;margin-top:16px;
+}
+.result-url{
+  font-family:'JetBrains Mono',monospace;font-size:.82rem;flex:1;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.result-btn{
+  background:transparent;border:1px solid var(--border2);color:var(--muted2);
+  font-size:.75rem;font-weight:600;padding:5px 10px;border-radius:7px;
+  cursor:pointer;font-family:'Outfit',sans-serif;transition:all .2s;white-space:nowrap;flex-shrink:0;
+}
+.result-btn:hover{border-color:var(--em);color:var(--em)}
+.result-btn.purple:hover{border-color:var(--qr);color:var(--qr)}
+
+/* ── ACTION CHIPS ── */
+.chip-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.chip{
+  display:flex;align-items:center;gap:6px;
+  background:var(--s3);border:1px solid var(--border2);border-radius:100px;
+  padding:6px 14px;font-size:.78rem;font-weight:600;color:var(--muted2);
+  cursor:pointer;transition:all .2s;
+}
+.chip:hover{border-color:var(--em);color:var(--em)}
+.chip.for-qr:hover{border-color:var(--qr);color:var(--qr)}
+.chip.for-sh:hover{border-color:var(--sh);color:var(--sh)}
+
+/* ── QR GRID ── */
+.qr-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:580px){.qr-grid{grid-template-columns:1fr}}
+
+/* ── QR PREVIEW ── */
+.qr-preview-wrap{
+  background:var(--s3);border:1px solid var(--border);border-radius:var(--r);
+  padding:24px;display:flex;flex-direction:column;align-items:center;gap:16px;min-height:280px;justify-content:center;
+}
+#qr-canvas-holder{display:inline-flex;align-items:center;justify-content:center;transition:transform .3s}
+#qr-canvas-holder:hover{transform:scale(1.05)}
+#qr-canvas-holder canvas{border-radius:10px;display:block}
+.qr-placeholder{
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+  color:var(--muted);font-size:.85rem;text-align:center;
+}
+.qr-placeholder svg{opacity:.35}
+.qr-dl-row{display:flex;gap:8px;width:100%}
+.qr-dl-btn{
+  flex:1;padding:10px;border-radius:8px;border:1px solid var(--border2);background:transparent;
+  color:var(--muted2);font-family:'Outfit',sans-serif;font-size:.82rem;font-weight:600;
+  cursor:pointer;transition:all .2s;
+}
+.qr-dl-btn:hover:not(:disabled){border-color:var(--qr);color:var(--qr)}
+.qr-dl-btn:disabled{opacity:.35;cursor:not-allowed}
+
+/* ── COLOR ROW ── */
+.color-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cpicker-wrap{
+  display:flex;align-items:center;gap:10px;background:var(--s3);border:1px solid var(--border);
+  border-radius:10px;padding:9px 13px;transition:border-color .2s;cursor:pointer;
+}
+.cpicker-wrap:hover{border-color:var(--qr)}
+input[type=color]{width:28px;height:28px;border:none;border-radius:6px;cursor:pointer;background:none;padding:0;flex-shrink:0}
+.hex-label{font-family:'JetBrains Mono',monospace;font-size:.82rem;color:var(--text)}
+
+/* ── EC PILLS ── */
+.ec-pills{display:flex;gap:6px}
+.ec-pill{
+  flex:1;padding:9px 4px;text-align:center;border-radius:8px;font-size:.8rem;font-weight:600;
+  background:var(--s3);border:1px solid var(--border);color:var(--muted);cursor:pointer;transition:all .2s;
+}
+.ec-pill:hover{border-color:var(--qr);color:var(--text)}
+.ec-pill.active{background:rgba(99,102,241,.18);border-color:var(--qr);color:var(--qr)}
+
+/* ── SLIDER ── */
+.slider-wrap{display:flex;align-items:center;gap:12px}
+input[type=range]{
+  flex:1;-webkit-appearance:none;height:4px;background:var(--border);border-radius:4px;outline:none;cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:17px;height:17px;border-radius:50%;
+  background:linear-gradient(135deg,var(--qr),#4f46e5);cursor:pointer;box-shadow:0 0 8px var(--glow-qr);
+}
+.sval{font-family:'JetBrains Mono',monospace;font-size:.82rem;color:var(--qr);min-width:44px;text-align:right}
+
+/* ── DIVIDER ── */
+.or-row{display:flex;align-items:center;gap:12px;margin:20px 0}
+.or-row::before,.or-row::after{content:'';flex:1;height:1px;background:var(--border)}
+.or-row span{font-size:.75rem;font-weight:600;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+
+/* ── LOADING SPINNER ── */
+.spinner{
+  display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,.2);
+  border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:var(--s2);border:1px solid var(--border2);color:var(--text);
+  padding:10px 22px;border-radius:100px;font-size:.85rem;font-weight:600;
+  z-index:999;transition:transform .35s cubic-bezier(.175,.885,.32,1.275);pointer-events:none;
+  box-shadow:0 8px 30px rgba(0,0,0,.4);
+}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.green{border-color:var(--em);color:var(--em2)}
+.toast.amber{border-color:var(--sh);color:var(--sh)}
+.toast.indigo{border-color:var(--qr);color:#a5b4fc}
+</style>
+</head>
+<body>
+<div class="mesh"></div>
+
+<div class="app">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="badge">⚡ Link Studio</div>
+    <h1>Tudo num só lugar</h1>
+    <p class="subtitle">Gere links, encurte URLs e crie QR Codes — integrados e em segundos.</p>
+  </header>
+
+  <!-- ACTIVE LINK BAR -->
+  <div class="link-bar" id="link-bar">
+    <span class="link-bar-label">Link ativo</span>
+    <span class="link-bar-url" id="link-bar-url">Nenhum link gerado ainda...</span>
+    <button class="link-bar-copy" id="link-bar-copy" onclick="copyActive()" style="display:none">Copiar</button>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab" id="tab-wa" onclick="setTab('wa')">
+      <span class="dot"></span>
+      <span>WhatsApp</span>
+    </button>
+    <button class="tab" id="tab-sh" onclick="setTab('sh')">
+      <span class="dot"></span>
+      <span>Encurtador</span>
+    </button>
+    <button class="tab" id="tab-qr" onclick="setTab('qr')">
+      <span class="dot"></span>
+      <span>QR Code</span>
+    </button>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       PANEL 1 — WHATSAPP
+  ═══════════════════════════════════════════════════════════════ -->
+  <div class="panel" id="panel-wa">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon icon-wa">💬</div>
+        <div>
+          <div class="card-title">Gerador de Link WhatsApp</div>
+          <div class="card-desc">Crie um link que abre o WhatsApp com número e mensagem já preenchidos.</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>País + Número de telefone</label>
+        <div class="phone-row">
+          <select class="ddi-select" id="wa-ddi">
+            <option value="55">🇧🇷 +55</option>
+            <option value="1">🇺🇸 +1</option>
+            <option value="351">🇵🇹 +351</option>
+            <option value="244">🇦🇴 +244</option>
+            <option value="258">🇲🇿 +258</option>
+            <option value="54">🇦🇷 +54</option>
+            <option value="52">🇲🇽 +52</option>
+            <option value="57">🇨🇴 +57</option>
+            <option value="56">🇨🇱 +56</option>
+            <option value="34">🇪🇸 +34</option>
+          </select>
+          <input type="text" id="wa-phone" placeholder="11 99999-9999 (só números)" oninput="this.value=this.value.replace(/\D/g,'')"/>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Mensagem automática <span style="color:var(--muted);font-weight:400">(opcional)</span></label>
+        <textarea id="wa-msg" placeholder="Olá! Vi seu anúncio e gostaria de saber mais..."></textarea>
+      </div>
+
+      <button class="btn btn-wa" onclick="generateWA()">💬 Gerar link WhatsApp</button>
+
+      <div id="wa-result" style="display:none">
+        <div class="result-box">
+          <span class="result-url" id="wa-url-display"></span>
+          <button class="result-btn" onclick="copyText(document.getElementById('wa-url-display').textContent)">Copiar</button>
+        </div>
+        <div class="chip-row">
+          <div class="chip for-qr" onclick="sendToQR('wa')">⬡ Gerar QR Code</div>
+          <div class="chip for-sh" onclick="sendToShortener('wa')">⚡ Encurtar link</div>
+          <div class="chip" onclick="openLink('wa')">↗ Testar link</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       PANEL 2 — SHORTENER
+  ═══════════════════════════════════════════════════════════════ -->
+  <div class="panel" id="panel-sh">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon icon-sh">⚡</div>
+        <div>
+          <div class="card-title">Encurtador de URL</div>
+          <div class="card-desc">Cole qualquer link longo e receba uma versão curta e compartilhável.</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>URL para encurtar</label>
+        <input type="url" id="sh-input" placeholder="https://exemplo.com/pagina-muito-longa/com-parametros"/>
+      </div>
+
+      <button class="btn btn-sh" id="btn-sh" onclick="shortenURL()">⚡ Encurtar URL</button>
+
+      <div id="sh-result" style="display:none">
+        <div class="result-box">
+          <span class="result-url" id="sh-url-display"></span>
+          <button class="result-btn purple" onclick="copyText(document.getElementById('sh-url-display').textContent)">Copiar</button>
+        </div>
+        <div class="chip-row">
+          <div class="chip for-qr" onclick="sendToQR('sh')">⬡ Gerar QR Code</div>
+          <div class="chip" onclick="openLink('sh')">↗ Testar link</div>
+        </div>
+      </div>
+
+      <div class="or-row"><span>ou</span></div>
+
+      <div class="field" style="margin-bottom:0">
+        <label>Usar o link ativo</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="text" id="sh-active-display" readonly placeholder="Nenhum link ativo ainda..." style="cursor:default;color:var(--muted2)"/>
+          <button style="flex-shrink:0;padding:11px 16px;border-radius:10px;background:var(--s3);border:1px solid var(--border2);color:var(--muted2);font-family:'Outfit',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap" onmouseover="this.style.borderColor='var(--sh)';this.style.color='var(--sh)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--muted2)'" onclick="useActiveForSh()">Encurtar ativo</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       PANEL 3 — QR CODE
+  ═══════════════════════════════════════════════════════════════ -->
+  <div class="panel" id="panel-qr">
+    <div class="qr-grid">
+
+      <!-- Controls -->
+      <div>
+        <div class="card">
+          <div class="card-head">
+            <div class="card-icon icon-qr">⬡</div>
+            <div>
+              <div class="card-title">Gerador de QR Code</div>
+              <div class="card-desc">Personalize e exporte seu QR.</div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Link ou texto</label>
+            <input type="url" id="qr-input" placeholder="https://seu-site.com"/>
+          </div>
+
+          <div class="field">
+            <label>Cores</label>
+            <div class="color-pair">
+              <div>
+                <div style="font-size:.75rem;color:var(--muted);margin-bottom:6px;font-weight:600">Principal</div>
+                <div class="cpicker-wrap">
+                  <input type="color" id="qr-dark" value="#1e1b4b" oninput="document.getElementById('hex-dark').textContent=this.value"/>
+                  <span class="hex-label" id="hex-dark">#1e1b4b</span>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:.75rem;color:var(--muted);margin-bottom:6px;font-weight:600">Fundo</div>
+                <div class="cpicker-wrap">
+                  <input type="color" id="qr-light" value="#ffffff" oninput="document.getElementById('hex-light').textContent=this.value"/>
+                  <span class="hex-label" id="hex-light">#ffffff</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Tamanho: <span id="sz-val">240</span>px</label>
+            <div class="slider-wrap">
+              <input type="range" id="qr-size" min="128" max="512" step="16" value="240" oninput="document.getElementById('sz-val').textContent=this.value"/>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Margem: <span id="mg-val">10</span>px</label>
+            <div class="slider-wrap">
+              <input type="range" id="qr-margin" min="0" max="40" step="4" value="10" oninput="document.getElementById('mg-val').textContent=this.value"/>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Correção de erro</label>
+            <div class="ec-pills">
+              <div class="ec-pill" data-ec="L" onclick="setEC(this)">L · 7%</div>
+              <div class="ec-pill active" data-ec="M" onclick="setEC(this)">M · 15%</div>
+              <div class="ec-pill" data-ec="Q" onclick="setEC(this)">Q · 25%</div>
+              <div class="ec-pill" data-ec="H" onclick="setEC(this)">H · 30%</div>
+            </div>
+          </div>
+
+          <button class="btn btn-qr" onclick="generateQR()">⬡ Gerar QR Code</button>
+
+          <div class="or-row"><span>ou</span></div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="text" id="qr-active-display" readonly placeholder="Nenhum link ativo..." style="flex:1;cursor:default;color:var(--muted2)"/>
+            <button style="flex-shrink:0;padding:11px 14px;border-radius:10px;background:var(--s3);border:1px solid var(--border2);color:var(--muted2);font-family:'Outfit',sans-serif;font-size:.83rem;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap" onmouseover="this.style.borderColor='var(--qr)';this.style.color='var(--qr)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--muted2)'" onclick="useActiveForQR()">QR do ativo</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview -->
+      <div>
+        <div class="qr-preview-wrap" style="height:100%;min-height:400px">
+          <div id="qr-canvas-holder">
+            <div class="qr-placeholder" id="qr-placeholder">
+              <svg width="56" height="56" viewBox="0 0 56 56" fill="none"><rect x="4" y="4" width="20" height="20" rx="3" stroke="currentColor" stroke-width="2"/><rect x="8" y="8" width="12" height="12" fill="currentColor"/><rect x="32" y="4" width="20" height="20" rx="3" stroke="currentColor" stroke-width="2"/><rect x="36" y="8" width="12" height="12" fill="currentColor"/><rect x="4" y="32" width="20" height="20" rx="3" stroke="currentColor" stroke-width="2"/><rect x="8" y="36" width="12" height="12" fill="currentColor"/><rect x="32" y="32" width="6" height="6" fill="currentColor"/><rect x="42" y="32" width="6" height="6" fill="currentColor"/><rect x="32" y="42" width="6" height="6" fill="currentColor"/><rect x="42" y="42" width="10" height="10" fill="currentColor"/></svg>
+              <span>Configure e clique<br/>em Gerar QR Code</span>
+            </div>
+          </div>
+          <div class="qr-dl-row">
+            <button class="qr-dl-btn" id="btn-dl-png" disabled onclick="dlQR('png')">⬇ Baixar PNG</button>
+            <button class="qr-dl-btn" id="btn-copy-img" disabled onclick="copyQRImg()">⎘ Copiar</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────
+let activeLink = '';
+let waLink = '';
+let shLink = '';
+let qrLink = '';
+let currentEC = 'M';
+
+// ── TABS ──────────────────────────────────────────────────────
+function setTab(name) {
+  ['wa','sh','qr'].forEach(t => {
+    document.getElementById('panel-'+t).classList.remove('active');
+    const tb = document.getElementById('tab-'+t);
+    tb.className = 'tab';
+  });
+  document.getElementById('panel-'+name).classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active-'+name);
+  syncActiveDisplays();
+}
+
+// ── ACTIVE LINK ────────────────────────────────────────────────
+function setActive(url, label) {
+  activeLink = url;
+  const bar = document.getElementById('link-bar');
+  const display = document.getElementById('link-bar-url');
+  const copyBtn = document.getElementById('link-bar-copy');
+  display.textContent = url;
+  bar.classList.add('has-link');
+  copyBtn.style.display = '';
+  syncActiveDisplays();
+}
+
+function syncActiveDisplays() {
+  const sh = document.getElementById('sh-active-display');
+  const qr = document.getElementById('qr-active-display');
+  if(sh) sh.value = activeLink || '';
+  if(qr) qr.value = activeLink || '';
+}
+
+function copyActive() { copyText(activeLink); }
+
+// ── WHATSAPP ──────────────────────────────────────────────────
+function generateWA() {
+  const ddi = document.getElementById('wa-ddi').value;
+  const phone = document.getElementById('wa-phone').value.replace(/\D/g,'');
+  const msg = document.getElementById('wa-msg').value.trim();
+
+  if (!phone) { toast('⚠ Digite o número de telefone.','amber'); return; }
+
+  const full = ddi + phone;
+  const base = `https://wa.me/${full}`;
+  const url = msg ? `${base}?text=${encodeURIComponent(msg)}` : base;
+
+  waLink = url;
+  setActive(url, 'WhatsApp');
+
+  document.getElementById('wa-url-display').textContent = url;
+  document.getElementById('wa-result').style.display = 'block';
+  toast('✔ Link WhatsApp gerado!','green');
+}
+
+// ── SHORTENER ─────────────────────────────────────────────────
+async function shortenURL(urlOverride) {
+  const url = urlOverride || document.getElementById('sh-input').value.trim();
+  if (!url) { toast('⚠ Insira uma URL para encurtar.','amber'); return; }
+  if (!url.startsWith('http')) { toast('⚠ URL inválida. Use http:// ou https://','amber'); return; }
+
+  const btn = document.getElementById('btn-sh');
+  btn.innerHTML = '<span class="spinner"></span>Encurtando...';
+  btn.disabled = true;
+
+  try {
+    // Use is.gd — CORS-friendly shortener
+    const res = await fetch(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(url)}`);
+    if (!res.ok) throw new Error('Erro na API');
+    const short = await res.text();
+
+    if (!short.startsWith('http')) throw new Error('Resposta inválida');
+
+    shLink = short.trim();
+    setActive(shLink, 'Encurtado');
+
+    document.getElementById('sh-url-display').textContent = shLink;
+    document.getElementById('sh-result').style.display = 'block';
+    document.getElementById('sh-input').value = url;
+    toast('✔ URL encurtada com sucesso!','amber');
+  } catch(e) {
+    toast('Erro ao encurtar. Verifique a URL e tente novamente.','');
+  } finally {
+    btn.innerHTML = '⚡ Encurtar URL';
+    btn.disabled = false;
+  }
+}
+
+function useActiveForSh() {
+  if (!activeLink) { toast('Nenhum link ativo ainda.',''); return; }
+  document.getElementById('sh-input').value = activeLink;
+  shortenURL(activeLink);
+}
+
+// ── QR CODE ───────────────────────────────────────────────────
+function setEC(el) {
+  document.querySelectorAll('.ec-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  currentEC = el.dataset.ec;
+}
+
+function generateQR(urlOverride) {
+  const url = urlOverride || document.getElementById('qr-input').value.trim();
+  if (!url) { toast('⚠ Insira uma URL para gerar o QR.','indigo'); return; }
+
+  const size = parseInt(document.getElementById('qr-size').value);
+  const margin = parseInt(document.getElementById('qr-margin').value);
+  const dark = document.getElementById('qr-dark').value;
+  const light = document.getElementById('qr-light').value;
+
+  const holder = document.getElementById('qr-canvas-holder');
+  // Clear
+  const old = holder.querySelector('canvas');
+  if(old) old.remove();
+  const ph = document.getElementById('qr-placeholder');
+  if(ph) ph.style.display = 'none';
+
+  try {
+    new QRCode(holder, {
+      text: url,
+      width: size,
+      height: size,
+      colorDark: dark,
+      colorLight: light,
+      correctLevel: QRCode.CorrectLevel[currentEC],
+      quietZone: margin,
+      quietZoneColor: light
+    });
+    setTimeout(()=>{
+      const c = holder.querySelector('canvas');
+      if(c){ c.style.borderRadius='10px'; c.style.display='block'; }
+    }, 80);
+
+    qrLink = url;
+    setActive(url, 'QR');
+    document.getElementById('qr-input').value = url;
+    document.getElementById('btn-dl-png').disabled = false;
+    document.getElementById('btn-copy-img').disabled = false;
+    toast('✔ QR Code gerado!','indigo');
+  } catch(e) {
+    toast('Erro ao gerar QR. Verifique o conteúdo.','');
+  }
+}
+
+function useActiveForQR() {
+  if (!activeLink) { toast('Nenhum link ativo ainda.',''); return; }
+  document.getElementById('qr-input').value = activeLink;
+  generateQR(activeLink);
+}
+
+function dlQR(fmt) {
+  const canvas = document.querySelector('#qr-canvas-holder canvas');
+  if (!canvas) return;
+  const a = document.createElement('a');
+  a.download = 'qrcode.png';
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+  toast('⬇ Download iniciado!','indigo');
+}
+
+async function copyQRImg() {
+  const canvas = document.querySelector('#qr-canvas-holder canvas');
+  if (!canvas) return;
+  try {
+    canvas.toBlob(async b => {
+      await navigator.clipboard.write([new ClipboardItem({'image/png': b})]);
+      toast('✔ Imagem copiada!','indigo');
+    });
+  } catch(e) { toast('Use o botão Baixar para salvar.',''); }
+}
+
+// ── CROSS-TOOL ACTIONS ─────────────────────────────────────────
+function sendToQR(from) {
+  const link = from === 'wa' ? waLink : shLink;
+  if (!link) return;
+  document.getElementById('qr-input').value = link;
+  setTab('qr');
+  setTimeout(() => generateQR(link), 150);
+}
+
+function sendToShortener(from) {
+  const link = from === 'wa' ? waLink : qrLink;
+  if (!link) return;
+  document.getElementById('sh-input').value = link;
+  setTab('sh');
+}
+
+function openLink(from) {
+  const link = from === 'wa' ? waLink : from === 'sh' ? shLink : qrLink;
+  if (link) window.open(link, '_blank');
+}
+
+// ── UTILITIES ─────────────────────────────────────────────────
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(()=> toast('✔ Copiado!','green')).catch(()=>{
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    toast('✔ Copiado!','green');
+  });
+}
+
+let toastTimer;
+function toast(msg, type) {
+  clearTimeout(toastTimer);
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast' + (type ? ' '+type : '');
+  el.classList.add('show');
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+setTab('wa');
+document.getElementById('qr-input').addEventListener('keydown', e => { if(e.key==='Enter') generateQR(); });
+document.getElementById('sh-input').addEventListener('keydown', e => { if(e.key==='Enter') shortenURL(); });
+</script>
+</body>
+</html>
